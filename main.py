@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, Request
+from sqlalchemy import DateTime
 
 
 
@@ -15,7 +16,13 @@ from app.models.imgenes_productos_model import ImagenProducto
 
 
 
+from pydantic import BaseModel
+
+
+
 from fastapi import FastAPI
+
+from app.models.usuarios_model import UsuariosModel
 
 
 app = FastAPI()
@@ -105,3 +112,65 @@ def getAllProducts(db: Session = Depends(get_db)):
 
 
 
+
+
+ 
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class LoginResponse(BaseModel):
+    id: int
+    email: str
+    nombre: str
+    rol: str
+    activo: int
+
+    
+
+
+    
+
+
+@app.post("/login/", response_model=LoginResponse)
+async def login(credentials: LoginRequest, db: Session = Depends(get_db)):
+    
+    
+    user_db = db.query(UsuariosModel).filter(UsuariosModel.email == credentials.email).first()
+
+    print("user_db ==== " + str(user_db))
+
+    
+    
+    
+
+    
+    if user_db.password_hash != credentials.password:
+        return {
+            "error": "Email o contraseña incorrectos"}
+
+    
+    return user_db
+
+
+
+
+class UserData(BaseModel):
+    nombre: str
+    email: str
+    password: str
+    rol : str
+
+
+
+@app.post("/singup/", response_model=UserData)
+async def singup(db : Session = Depends(get_db), user: UserData = None):
+
+    new_user = UsuariosModel(**user.dict())
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return new_user
+    
