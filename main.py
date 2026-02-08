@@ -1,27 +1,17 @@
 from fastapi import FastAPI, Depends, Request
 from sqlalchemy import DateTime
-
-
-
-
-# from database.database import get_db
+from fastapi import HTTPException
+from starlette import status
+import bcrypt
 from app.database.database import get_db
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
-
 from app.models.materials_model import MaterialsModel
 from app.models.categorias_model import CategoriesModel
 from app.models.productos_model import ProductosModel
 from app.models.imgenes_productos_model import ImagenProducto
-
-
-
 from pydantic import BaseModel
-
-
-
 from fastapi import FastAPI
-
 from app.models.usuarios_model import UsuariosModel
 
 
@@ -133,25 +123,34 @@ class LoginResponse(BaseModel):
     
 
 
-@app.post("/login/", response_model=LoginResponse)
+@app.post("/login", response_model=LoginResponse)
 async def login(credentials: LoginRequest, db: Session = Depends(get_db)):
-    
-    
     user_db = db.query(UsuariosModel).filter(UsuariosModel.email == credentials.email).first()
 
-    print("user_db ==== " + str(user_db))
-
-    
-    
     
 
-    
-    if user_db.password_hash != credentials.password:
-        return {
-            "error": "Email o contraseña incorrectos"}
+    if user_db is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="El usuario no existe"
+        )
 
+    if not bcrypt.checkpw(
+        credentials.password.encode("utf-8"), 
+        user_db.password_hash.encode("utf-8")
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciales incorrectas"
+        )
     
     return user_db
+
+
+
+
+
+
 
 
 
@@ -159,18 +158,53 @@ async def login(credentials: LoginRequest, db: Session = Depends(get_db)):
 class UserData(BaseModel):
     nombre: str
     email: str
-    password: str
+    password_hash: str
     rol : str
+
+
 
 
 
 @app.post("/singup/", response_model=UserData)
 async def singup(db : Session = Depends(get_db), user: UserData = None):
+ 
+    datos = user.dict()
 
-    new_user = UsuariosModel(**user.dict())
-    db.add(new_user)
+    # aqui haré el encriptado de la contraseña
+
+
+    
+    
+
+    salt = bcrypt.gensalt()
+
+    pass_encrypted = bcrypt.hashpw(datos["password_hash"].encode("utf-8"), salt)
+
+    datos["password_hash"] = pass_encrypted.decode("utf-8")
+
+
+
+
+
+
+
+
+    
+
+    new_user2 = UsuariosModel(**datos)
+
+
+
+ 
+
+
+    
+
+    
+    
+    db.add(new_user2)
     db.commit()
-    db.refresh(new_user)
+    db.refresh(new_user2)
 
-    return new_user
+    return new_user2
     
