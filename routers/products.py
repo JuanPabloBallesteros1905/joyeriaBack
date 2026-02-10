@@ -17,24 +17,24 @@ def list_products(
     authorization: Optional[str] = Header(None)):
 
 
-    # ✅ Validar que el header exista
+    
     if not authorization:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authorization header requerido"
         )
 
-    # ✅ Validar formato Bearer
+    
     if not authorization.startswith("Bearer "):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Formato de token inválido. Debe ser 'Bearer <token>'"
         )
 
-    # ✅ Extraer token
+    
     token = authorization.split(" ")[1]
 
-    # ✅ Validar token
+    
     try:
         payload = decode_token(token)
 

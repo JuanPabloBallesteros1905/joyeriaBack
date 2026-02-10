@@ -21,7 +21,7 @@ def list_materials(
     ):
 
 
-    # ✅ Validar que el header exista
+    
     if not authorization:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -30,7 +30,7 @@ def list_materials(
     
 
 
-    # ✅ Validar formato Bearer
+    
     if not authorization.startswith("Bearer "):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
