@@ -1,4 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import status
+from jose import JWTError
+from app.utils.token import decode_token
+from typing import Optional
 from sqlalchemy.orm import Session
 from app.deps import get_db
 from app.models.productos_model import ProductosModel
@@ -8,7 +12,49 @@ router = APIRouter(prefix="/productos", tags=["products"])
 
 
 @router.get("/", summary="List products with image")
-def list_products(db: Session = Depends(get_db)):
+def list_products(
+    db: Session = Depends(get_db),
+    authorization: Optional[str] = Header(None)):
+
+
+    # ✅ Validar que el header exista
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authorization header requerido"
+        )
+
+    # ✅ Validar formato Bearer
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Formato de token inválido. Debe ser 'Bearer <token>'"
+        )
+
+    # ✅ Extraer token
+    token = authorization.split(" ")[1]
+
+    # ✅ Validar token
+    try:
+        payload = decode_token(token)
+
+        if payload is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token inválido"
+            )
+
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Error validando el token"
+        )
+
+
+
+
+
+
     try:
         products = (
             db.query(

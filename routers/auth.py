@@ -5,6 +5,8 @@ from app.deps import get_db
 from app.models.usuarios_model import UsuariosModel
 from app.schemas.auth import LoginRequest, LoginResponse, UserCreate, UserOut
 from app.utils.security import verify_password, get_password_hash
+from app.routers import auth as auth_router
+from app.utils.token import decode_token, create_token
 
 router = APIRouter(prefix="", tags=["auth"])
 
@@ -14,20 +16,33 @@ router = APIRouter(prefix="", tags=["auth"])
 
 @router.post("/login", response_model=LoginResponse)
 def login(credentials: LoginRequest, db: Session = Depends(get_db)):
+    
     user_db = db.query(UsuariosModel).filter(UsuariosModel.email == credentials.email).first()
+
     if user_db is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El usuario no existe")
 
     if not verify_password(credentials.password, user_db.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciales incorrectas")
+    
 
-    return LoginResponse(
+    
+
+    dataUser = LoginResponse(
         id=user_db.id,
         email=user_db.email,
         nombre=user_db.nombre,
         rol=user_db.rol,
-        activo=user_db.activo
+        activo=user_db.activo,
+        token=""
     )
+
+
+    token = create_token(dataUser.dict(), expires_delta=None)
+    dataUser.token = token
+
+    return dataUser 
+
 
 
 @router.post("/singup/", response_model=UserOut)

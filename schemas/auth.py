@@ -10,6 +10,7 @@ class LoginResponse(BaseModel):
     nombre: str
     rol: str
     activo: int
+    token: str
 
 class UserCreate(BaseModel):
     nombre: str
