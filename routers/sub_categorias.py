@@ -1,97 +1,27 @@
 
 from fastapi import APIRouter, Header, Depends, HTTPException
 from sqlalchemy.orm import Session
-
-from app.schemas.categories import Categorie_item
-
+from app.models.sub_categorias_model import Subcategoria
 from app.deps import get_db
-from app.models.categorias_model import CategoriesModel
 from typing import Optional
-
-from app.utils.token import decode_token
 from fastapi import status
-
-
-router = APIRouter(prefix="/categories", tags=["categories"])
-
-
-#revisar como funcionan los router porque no deberian comunicarse con la base de datos 
+from app.utils.token import decode_token
+from app.schemas.subcategoria import SubCategoria_item 
 
 
 
 
 
+router = APIRouter(prefix="/subcategorias", tags=["subcategorias"])
 
 
-#Update
-@router.post("/update/{id}", summary="Update category")
-def update_category(
+
+@router.post("/delete/{id}", summary="Delete subcategoria")
+def remove_subcategoria(
     db: Session = Depends(get_db),
     authorization: Optional[str] = Header(None),
-    id: int = None,
-    categorie: Categorie_item = None):
+    id: int = None):
 
-
-
-
-    
-    if not authorization:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authorization header requerido"
-        )
-
-    
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Formato de token inválido. Debe ser 'Bearer <token>'"
-        )
-
-    
-    token = authorization.split(" ")[1]
-
-    
-    try:
-        payload = decode_token(token)
-
-        if payload is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token inválido"
-            )
-
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Error validando el token"
-        )
-
-
-
-
-
-
-
-    datos = categorie.dict()
-
-
-    db.query(CategoriesModel).filter(CategoriesModel.id == id).update(datos)
-    db.commit()
-
-    return {
-        "data": "Categoría actualizada exitosamente"
-    }
-
-    
-#Create
-@router.post("/create", summary="Create category")
-def create_category(
-    db: Session = Depends(get_db),
-    authorization: Optional[str] = Header(None),
-    categorie: Categorie_item = None
-
-    ):
 
 
     if not authorization:
@@ -129,76 +59,9 @@ def create_category(
 
 
 
-    datos = categorie.dict()
-
-    new_categorie = CategoriesModel(**datos)
-    
 
 
-
-
-
-
-    db.add(new_categorie)
-    db.commit()
-    db.refresh(new_categorie)
-
-
-
-
-    return {
-        "data": "Categoría creada exitosamente"
-    }
-
-
-#Delate
-@router.post("/delete/{id}", summary="Delete category")
-def remove_category(
-    db: Session = Depends(get_db),
-    authorization: Optional[str] = Header(None),
-   
-    id: int = None
-    ):
-
-
-
-
-
-    if not authorization:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authorization header requerido"
-        )
-
-    
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Formato de token inválido. Debe ser 'Bearer <token>'"
-        )
-
-
-    token = authorization.split(" ")[1]
-
-
-    try:
-        payload = decode_token(token)
-
-        if payload is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token inválido"
-            )
-
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Error validando el token"
-        )
-
-     
-
-    item = db.query(CategoriesModel).filter(CategoriesModel.id == id).first();
+    item = db.query(Subcategoria).filter(Subcategoria.id == id).first();
     if item is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -212,11 +75,129 @@ def remove_category(
         "data": "Categoría eliminada exitosamente"
     }
 
-#Get
-@router.get("/", summary="List active categories")
-def list_categories(
+
+@router.post("/create", summary="Create subcategoria")
+def create_subcategoria(
     db: Session = Depends(get_db),
-    authorization: Optional[str] = Header(None)):
+    authorization: Optional[str] = Header(None),
+    subcategoria: SubCategoria_item = None):
+
+
+
+
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authorization header requerido"
+        )
+
+    
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Formato de token inválido. Debe ser 'Bearer <token>'"
+        )
+
+
+    token = authorization.split(" ")[1]
+
+
+    try:
+        payload = decode_token(token)
+
+        if payload is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token inválido"
+            )
+
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Error validando el token"
+        )
+
+
+
+    datos = subcategoria.dict()
+
+    new_subcategoria = Subcategoria(**datos)
+
+
+    
+
+
+    db.add(new_subcategoria)
+    db.commit()
+    db.refresh(new_subcategoria)
+
+    return {
+        "data": "Categoría creada exitosamente"
+    }
+
+@router.post("/update/{id}", summary="Update subcategoria")
+
+def update_subcategoria(
+    db: Session = Depends(get_db),
+    authorization: Optional[str] = Header(None),
+    id: int = None,
+    subcategoria: SubCategoria_item = None):
+
+
+
+    
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authorization header requerido"
+        )
+
+    
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Formato de token inválido. Debe ser 'Bearer <token>'"
+        )
+
+    
+    token = authorization.split(" ")[1]
+
+    
+    try:
+        payload = decode_token(token)
+
+        if payload is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token inválido"
+            )
+
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Error validando el token"
+        )
+
+
+
+
+
+
+    datos = subcategoria.dict()
+
+
+    db.query(Subcategoria).filter(Subcategoria.id == id).update(datos)
+    db.commit()
+
+    return {
+        "data": "Categoría actualizada exitosamente"
+    }
+
+
+@router.get("/", summary="List subcategorias")
+def list_subcategories(db: Session = Depends(get_db),authorization: Optional[str] = Header(None)):
+
+
 
     if not authorization:
         raise HTTPException(
@@ -253,16 +234,17 @@ def list_categories(
         )
 
     
-    categories = db.query(CategoriesModel).where(
-        CategoriesModel.activa == 1
-    ).all()
-
-    return {"data": categories}
 
 
+    sub_categories = db.query(Subcategoria)
+    
+    .where(Subcategoria.activa == 1).all()
 
 
 
+    return {"data": sub_categories}
+   
 
 
+    
 

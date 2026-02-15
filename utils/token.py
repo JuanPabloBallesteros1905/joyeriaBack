@@ -21,7 +21,7 @@ token_expire_str = os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")
 try:
     ACCESS_TOKEN_EXPIRE_MINUTES = int(token_expire_str) if token_expire_str else 30
 except ValueError:
-    ACCESS_TOKEN_EXPIRE_MINUTES = 30  # Valor por defecto si no es un número válido
+    ACCESS_TOKEN_EXPIRE_MINUTES = 60  
 
 
 
@@ -52,4 +52,8 @@ def decode_token(token: str):
 
       
 
+
+
+
+    
 

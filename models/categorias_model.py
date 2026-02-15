@@ -11,17 +11,7 @@ from sqlalchemy.sql import func
 
 from app.database.database import Base
 
-
-# class categoriesModel (Base):
-#     __tablename__ = "categorias"
-
-#     id = (Column(Integer, primary_key=True, index=True))
-#     nombre = Column(String, unique=True, index=True)
-#     descripcion = Column(String, index=True)
-#     activa = Column(Boolean, index=True)
-
-
-
+ 
 class CategoriesModel(Base):
     __tablename__ = "categorias"
 
