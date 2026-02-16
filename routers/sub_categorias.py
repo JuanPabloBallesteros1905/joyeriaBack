@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Header, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.models.sub_categorias_model import Subcategoria
+from app.models.categorias_model import CategoriesModel
 from app.deps import get_db
 from typing import Optional
 from fastapi import status
@@ -233,16 +234,61 @@ def list_subcategories(db: Session = Depends(get_db),authorization: Optional[str
             detail="Error validando el token"
         )
 
+
+
     
 
 
-    sub_categories = db.query(Subcategoria)
+    subCategorias = (
+        db.query(
+            Subcategoria.id,
+            Subcategoria.nombre,
+            Subcategoria.descripcion,
+            Subcategoria.categoria_id,
+            Subcategoria.activa,
+            CategoriesModel.nombre.label("categoria_nombre") 
+            
+            
+        ).join(CategoriesModel).all()
+    )
+
+
+    data = [
+        {
+            "id": p.id,
+            "nombre": p.nombre,
+            "descripcion": p.descripcion,
+            "categoria_id": p.categoria_id,
+            "activa": p.activa, 
+            "categoria_label": p.categoria_nombre 
+
+
+
+            
+            
+
+            
+
+            
+        }
+
+        for p in subCategorias
+        
+    ]
+
+
+
+
+
+
     
-    .where(Subcategoria.activa == 1).all()
+
+
+    
 
 
 
-    return {"data": sub_categories}
+    return {"data": data}
    
 
 

@@ -30,7 +30,3 @@ app.include_router(categories_router.router)
 app.include_router(products_router.router)
 app.include_router(auth_router.router)
 app.include_router(sub_categorias_router.router)
-
-
-
-
