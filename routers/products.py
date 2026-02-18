@@ -10,84 +10,126 @@ from app.models.materials_model import MaterialsModel
 from app.models.imgenes_productos_model import ImagenProducto
 from app.models.productos_v2_model import ProductoVariante
 from app.models.categorias_model import CategoriesModel
-from app.schemas.productos import Produto_item
+from app.models.sub_categorias_model import Subcategoria
+from app.schemas.productos import ProductoBase
+from app.schemas.subcategoria import SubCategoria_item
+
+
+
+from typing import Union
  
 
 
 router = APIRouter(prefix="/productos", tags=["products"])
 
 
+ 
 
-    #{
-    #    "nombre": "aasd",
-     #   "imagen": "asda",
-      #  "descripcion": "asdasd",
-       # "categoria_id": 1,
-        #"subcategoria_id": 1,
-       # "material_id": 1,
-       # "peso": "asdad",
-       # "tipo_medida": "asda",
-       # "dimensiones": "asda",
-       # "precio_compra": "234234",
-       # "precio_venta": "23424"
-    #}
-    
-@router.post("/create", summary="Delete product")
+
+IMAGEN = "images/"
+
+
+@router.post("/create", summary="Create product")
 async def create_joya(
- 
     db: Session = Depends(get_db),
-    file: UploadFile = File(...)):
+    producto: ProductoBase = None):
 
 
-    allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
-    file_extension = Path(file.filename).suffix.lower()
+
+
+
+
+    try:
+        datos = producto.dict()
+
+        producto_data = datos["producto"]
+        detalle_data = datos["detalle"]
+        imagen_data = datos["imagen"]
+
+        new_product = ProductosModel(**producto_data)
+
+        db.add(new_product)
+        db.flush()  # Flush to get the new product ID
+
+
+        new_detalle = ProductoVariante(
+            producto_id=new_product.id,
+            medida=detalle_data["medida"],
+            unidad=detalle_data["unidad"],
+            precio=detalle_data["precio"],
+            precio_compra=detalle_data["precio_compra"],
+            activo=detalle_data["activo"]
+        )
+
+        db.add(new_detalle)
+        db.commit()  # Commit to save the product and get the ID for the image
+
         
-    if file_extension not in allowed_extensions:
-        raise HTTPException(
-                status_code=400, 
-                detail=f"Tipo de archivo no permitido. Extensiones permitidas: {allowed_extensions}"
-            )
-            
+        new_image = ImagenProducto(
+            producto_id=new_product.id,
+            url=imagen_data["url"]
+
+        )
+
+
+        # with open(f"{IMAGEN}{imagen_data['url']}", "rb") as image_file:
+        #     image_content = image_file.read()
+        #     # Aquí puedes guardar el contenido de la imagen en tu base de datos o sistema de archivos
+
+
+
+        db.add(new_image)
+        db.commit()
+        
+       
+        
+
+        
+
+
+        
+
+        print(datos)
+
+        
+
+    except Exception as e:
+        return {"error": str(e)}
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
-       # Validar tamaño (ejemplo: máximo 5MB)
-        file_size = 0
-        content = await file.read()
-        file_size = len(content)
-        
-        if file_size > 5 * 1024 * 1024:  # 5MB
-            raise HTTPException(
-                status_code=400,
-                detail="El archivo es demasiado grande. Máximo 5MB"
-            )
-        
-        # Crear nombre único para el archivo
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        safe_filename = f"{timestamp}_{file.filename}"
-        file_path = UPLOAD_DIR / safe_filename
-        
-        # Guardar el archivo
-        with open(file_path, "wb") as buffer:
-            buffer.write(content)
-        
-        # Devolver la URL del archivo
-        file_url = f"/uploads/{safe_filename}"
-        
-        return JSONResponse({
-            "filename": safe_filename,
-            "url": file_url,
-            "message": "Imagen subida exitosamente"
-        })
-        
+    
 
-     
+    return {"message": "Producto creado exitosamente", "data": datos}
+
+ 
+    
+ 
  
 
 
 
 
-    
-    return {"data": "En construcción"}
 
+
+    
+    
+@router.post("/update/{product_id}", summary="Update| product")
+def update_product(
+    db: Session = Depends(get_db),):
+
+
+    return {"message": "Producto actualizado exitosamente"} 
+    
+
+    
+    
+@router.post("/delete/{product_id}", summary="Delete product")
+def delete_product(
+    db: Session = Depends(get_db),):
+
+
+    return {"message": "Producto eliminado exitosamente"} 
+    
 
 
 
@@ -98,6 +140,9 @@ async def create_joya(
 def list_products(
     db: Session = Depends(get_db),
     authorization: Optional[str] = Header(None)):
+
+
+
     try:
         products = (
             db.query(
@@ -112,24 +157,26 @@ def list_products(
                 ProductoVariante.precio,
                 ProductoVariante.precio_compra,
                 CategoriesModel.nombre.label("categoria_nombre"),
-                CategoriesModel.id.label("categoria_id"))
+                CategoriesModel.id.label("categoria_id")),
+                Subcategoria.nombre.label("subcategoria_nombre")
+                
+                
+            .join(Subcategoria)
             .join(ImagenProducto)
-            .join(MaterialsModel).
-            join(ProductoVariante).
-            join(CategoriesModel)
-            
+            .join(MaterialsModel)
+            .join(ProductoVariante)
+            .join(CategoriesModel).where(ProductosModel.activo == 1)            
             .all()
         )
 
         data = [
             {
-                
-
                 "id": p.id,
                 "nombre": p.nombre,
                 "descripcion": p.descripcion,
                 "categoria_id": p.categoria_id,
                 "categoria": p.categoria_nombre,                
+                "subcategoria": p.subcategoria_nombre,
                 "material_id": p.material_id,
                 "material": p.material_nombre,
                 "medida": p.medida,

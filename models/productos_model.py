@@ -7,19 +7,7 @@ from sqlalchemy.sql import func
 
 
 from app.database.database import Base
-
-
-
-
-
-
-# class ProductosModel(Base):
-#     __tablename__ = "productos"
-
-#     id = Column(Integer, primary_key=True, index=True)
-#     nombre = Column(String, unique=True, index=True)
-#     descripcion = Column(String, index=True)
-#     categoria_id = Column(Integer, index=True)
+ 
     
 
 class ProductosModel(Base):
