@@ -133,6 +133,7 @@ async def create_joya(
     imagenes: List[UploadFile] = File(...)
 ):
     try:
+        
         datos = json.loads(producto)
 
         producto_data = datos["producto"]
