@@ -213,7 +213,7 @@ def remove_category(
 @router.get("/", summary="List active categories")
 def list_categories(
     db: Session = Depends(get_db),
-    authorization: Optional[str] = Header(None)):
+):
 
    
     
