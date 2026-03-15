@@ -19,6 +19,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "https://admin.joyeriaitaliana.com"
+        "https://www.joyeriaitaliana.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
