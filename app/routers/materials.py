@@ -15,46 +15,46 @@ router = APIRouter(prefix="/materials", tags=["materials"])
 @router.get("/", summary="List materials")
 def list_materials(
     db: Session = Depends(get_db),
-    authorization: Optional[str] = Header(None)
+    # authorization: Optional[str] = Header(None)
     
 
     ):
 
 
     
-    if not authorization:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authorization header requerido"
-        )
+    # if not authorization:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_401_UNAUTHORIZED,
+    #         detail="Authorization header requerido"
+    #     )
     
 
 
     
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Formato de token inválido. Debe ser 'Bearer <token>'"
-        )
+    # if not authorization.startswith("Bearer "):
+    #     raise HTTPException(
+    #         status_code=status.HTTP_401_UNAUTHORIZED,
+    #         detail="Formato de token inválido. Debe ser 'Bearer <token>'"
+    #     )
     
-    token = authorization.split(" ")[1]
+    # token = authorization.split(" ")[1]
 
-    try:
-        payload = decode_token(token)
+    # try:
+    #     payload = decode_token(token)
 
-        if payload is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token inválido o expirado"
-            )
+    #     if payload is None:
+    #         raise HTTPException(
+    #             status_code=status.HTTP_401_UNAUTHORIZED,
+    #             detail="Token inválido o expirado"
+    #         )
 
-        print("Decoded token payload:", payload)
+    #     print("Decoded token payload:", payload)
 
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Error validando el token"
-        )
+    # except Exception:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_401_UNAUTHORIZED,
+    #         detail="Error validando el token"
+    #     )
 
 
 
