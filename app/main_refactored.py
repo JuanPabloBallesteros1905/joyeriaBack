@@ -14,13 +14,16 @@ app = FastAPI(title="Joyeria API (refactored)")
 
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
+origins = [
+    "http://localhost:3000",
+    "https://admin.joyeriaitaliana.com",
+    "https://joyeriaitaliana.com",
+    "https://www.joyeriaitaliana.com",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://admin.joyeriaitaliana.com"
-        "https://www.joyeriaitaliana.com",
-    ],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
