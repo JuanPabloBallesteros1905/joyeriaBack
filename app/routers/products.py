@@ -15,7 +15,7 @@ from app.models.productos_v2_model import ProductoVariante
 from app.models.categorias_model import CategoriesModel
 from app.models.sub_categorias_model import Subcategoria
 from app.models.imgenes_productos_model import ImagenProducto
-
+import uuid
 router = APIRouter(prefix="/productos", tags=["products"])
 
 
@@ -133,7 +133,7 @@ async def create_joya(
     imagenes: List[UploadFile] = File(...)
 ):
     try:
-        
+
         datos = json.loads(producto)
 
         producto_data = datos["producto"]
@@ -159,7 +159,7 @@ async def create_joya(
         if not os.path.exists(UPLOAD_FOLDER):
             os.makedirs(UPLOAD_FOLDER)
 
-        import uuid
+        
         
         # Procesar múltiples imágenes (SOLO LAS IMÁGENES, NO EL PRODUCTO)
         for imagen in imagenes:
@@ -186,6 +186,8 @@ async def create_joya(
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
     
+  
+
   
 @router.post("/update/{product_id}", summary="Update| product")
 def update_product(
