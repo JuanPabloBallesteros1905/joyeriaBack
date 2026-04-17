@@ -20,6 +20,50 @@ router = APIRouter(prefix="/productos", tags=["products"])
 
 
 
+
+
+@router.get("/category/{category_id}", summary="Get products by category")
+
+def get_products_by_category(
+    db: Session = Depends(get_db),
+    category_id: int = None,
+    
+    
+    
+    ):
+    try:
+
+        products = (
+
+
+            db.query(ProductosModel)
+            .join(CategoriesModel, CategoriesModel.id == ProductosModel.categoria_id)
+            .filter(ProductosModel.categoria_id == 3)
+            .all()
+
+   
+)
+
+        
+ 
+
+        
+
+
+        
+        
+
+        return {"data": products}
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
+
+
+
+
+
 @router.get("/{product_id}", summary="Get product by id")
 def get_product_by_id(
     db: Session = Depends(get_db),
