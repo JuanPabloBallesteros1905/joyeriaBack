@@ -6,7 +6,9 @@ from fastapi import status
 from jose import JWTError
 from app.utils.token import decode_token
 from typing import List, Optional
+from PIL import Image
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.deps import get_db
 from app.models.productos_model import ProductosModel
 from app.models.materials_model import MaterialsModel
@@ -33,27 +35,57 @@ def get_products_by_category(
     ):
     try:
 
-        products = (
 
+        product = (
+            db.query(
+                ProductosModel.id,
+                ProductosModel.nombre,
+                CategoriesModel.nombre.label("categoria_nombre"),
+                ImagenProducto.url,
+                ProductoVariante.precio
 
-            db.query(ProductosModel)
+            ).join(ProductoVariante, ProductoVariante.producto_id == ProductosModel.id) 
+            
+            .join(ImagenProducto, ImagenProducto.producto_id == ProductosModel.id)
+            
             .join(CategoriesModel, CategoriesModel.id == ProductosModel.categoria_id)
-            .filter(ProductosModel.categoria_id == 3)
-            .all()
+            
+            .where(ProductosModel.categoria_id == category_id).all()
 
-   
-)
+        )
 
+        data = []
+
+        for p in product:
+            data.append({
+                "id": p.id,
+                "name": p.nombre, 
+                "category": p.categoria_nombre, 
+                "image": p.url,
+                "price": p.precio
+                    
+                })
+
+
+        
+
+
+        
+        
+
+        
+        
         
  
 
+
         
 
 
         
         
 
-        return {"data": products}
+        return {"data": data}
 
     except Exception as e:
         return {"error": str(e)}
@@ -170,6 +202,7 @@ def delete_product(
     
 UPLOAD_FOLDER = "uploads"
 
+
 @router.post("/create", summary="Create product")
 async def create_joya(
     db: Session = Depends(get_db),
@@ -177,7 +210,6 @@ async def create_joya(
     imagenes: List[UploadFile] = File(...)
 ):
     try:
-
         datos = json.loads(producto)
 
         producto_data = datos["producto"]
@@ -203,17 +235,28 @@ async def create_joya(
         if not os.path.exists(UPLOAD_FOLDER):
             os.makedirs(UPLOAD_FOLDER)
 
-        
-        
-        # Procesar múltiples imágenes (SOLO LAS IMÁGENES, NO EL PRODUCTO)
+        # Procesar múltiples imágenes con OPTIMIZACIÓN
         for imagen in imagenes:
-            # Nombre único
-            extension = imagen.filename.split(".")[-1]
-            filename = f"{uuid.uuid4()}.{extension}"
+            # 1. Generar nombre único con extensión .webp
+            filename = f"{uuid.uuid4()}.webp"
             file_location = f"{UPLOAD_FOLDER}/{filename}"
 
-            with open(file_location, "wb") as buffer:
-                shutil.copyfileobj(imagen.file, buffer)
+            # 2. Abrir la imagen desde el stream de UploadFile
+            img = Image.open(imagen.file)
+
+            # 3. Asegurar modo RGB (WebP no maneja transparencia igual que PNG en todos los casos)
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+
+            # 4. Redimensionar si es muy grande (máximo 1200px de ancho para optimizar carga web)
+            max_width = 1200
+            if img.width > max_width:
+                ratio = max_width / float(img.width)
+                new_height = int(float(img.height) * float(ratio))
+                img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
+
+            # 5. Guardar optimizada (calidad 80 es ideal para equilibrio peso/calidad)
+            img.save(file_location, "WEBP", quality=80, optimize=True)
 
             # Guardar imagen en DB (ASOCIADA AL MISMO PRODUCTO)
             new_image = ImagenProducto(
@@ -229,9 +272,6 @@ async def create_joya(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
-    
-  
-
   
 @router.post("/update/{product_id}", summary="Update| product")
 def update_product(
@@ -246,7 +286,7 @@ def update_product(
     return {"message": "Producto actualizado exitosamente"} 
     
 
-from sqlalchemy import func
+
 
 
 @router.get("/", summary="List products with images")
