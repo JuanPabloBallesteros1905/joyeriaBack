@@ -6,3 +6,4 @@ sqlalchemy
 pymysql
 passlib[bcrypt]
 python-multipart
+pillow
