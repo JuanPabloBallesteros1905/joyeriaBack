@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+
+  backend:
+    build: .
+    container_name: joyeria_back
+    ports:
+      - "5000:4000"
+    env_file:
+      - .env
+    restart: always
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+      - ./uploads:/app/uploads   # 🔥 persistencia de imágenes
+
+  db:
+    image: mysql:8
+    container_name: joyeria_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root1905
+      MYSQL_DATABASE: joyeriaitaliana
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
