@@ -307,7 +307,7 @@ def list_products(
                 ProductoVariante.medida,
                 ProductoVariante.unidad,
                 ProductoVariante.precio,
-                ProductoVariante.precio_compra,
+                 
                 CategoriesModel.nombre.label("categoria_nombre"),
                 CategoriesModel.id.label("categoria_id"),
                 Subcategoria.nombre.label("subcategoria_nombre"),
@@ -348,7 +348,7 @@ def list_products(
                 "medida": p.medida,
                 "unidad": p.unidad,
                 "peso": p.peso,
-                "precio_compra": p.precio_compra,
+                
                 "precio_venta": p.precio,
                 # Devuelves TODAS las imágenes en un array
                 "imagenes": imagenes_list,
