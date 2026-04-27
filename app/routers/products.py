@@ -30,43 +30,50 @@ def get_products_by_category(
     db: Session = Depends(get_db),
     category_id: int = None,
     
-    
-    
     ):
     try:
 
 
         product = (
+
+
+
             db.query(
                 ProductosModel.id,
                 ProductosModel.nombre,
                 CategoriesModel.nombre.label("categoria_nombre"),
-                ImagenProducto.url,
-                ProductoVariante.precio
+                func.min(ImagenProducto.url).label("image"),
+                func.min(ProductoVariante.precio).label("price")
+            )
 
-            ).join(ProductoVariante, ProductoVariante.producto_id == ProductosModel.id) 
-            
+
+            .join(ProductoVariante, ProductoVariante.producto_id == ProductosModel.id)
             .join(ImagenProducto, ImagenProducto.producto_id == ProductosModel.id)
-            
             .join(CategoriesModel, CategoriesModel.id == ProductosModel.categoria_id)
+            .where(ProductosModel.categoria_id == category_id)
+            .group_by(ProductosModel.id, ProductosModel.nombre, CategoriesModel.nombre)
+            .all()
             
-            .where(ProductosModel.categoria_id == category_id).all()
-
         )
 
         data = []
 
+        seen = set()
+
         for p in product:
+
+            if p.id in seen:
+                continue
+
+            seen.add(p.id)
+
             data.append({
                 "id": p.id,
-                "name": p.nombre, 
-                "category": p.categoria_nombre, 
-                "image": p.url,
-                "price": p.precio
-                    
-                })
-
-
+                "name": p.nombre,
+                "category": p.categoria_nombre,
+                "image": p.image,
+                "price": p.price
+            })
         
 
 
