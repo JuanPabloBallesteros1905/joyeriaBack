@@ -17,6 +17,8 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 origins = [
     "http://localhost:3000",
     "http://localhost:3001",
+    "http://127.0.0.1:4000"
+    "http://localhost:4000",
     "https://admin.joyeriaitaliana.com",
     "https://joyeriaitaliana.com",
     "https://www.joyeriaitaliana.com",
