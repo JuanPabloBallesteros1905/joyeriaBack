@@ -1,116 +1,78 @@
 import json
 import os
-import shutil
-from fastapi import APIRouter,  File, Form, UploadFile, Depends, Header, HTTPException
+import uuid
+from typing import List
+
+from fastapi import APIRouter, File, Form, UploadFile, Depends, HTTPException
 from fastapi import status
-from jose import JWTError
-from app.utils.token import decode_token
-from typing import List, Optional
 from PIL import Image
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from app.deps import get_db
+
+from app.deps import get_db, require_role
 from app.models.productos_model import ProductosModel
 from app.models.materials_model import MaterialsModel
 from app.models.imgenes_productos_model import ImagenProducto
 from app.models.productos_v2_model import ProductoVariante
 from app.models.categorias_model import CategoriesModel
 from app.models.sub_categorias_model import Subcategoria
-from app.models.imgenes_productos_model import ImagenProducto
-import uuid
+
 router = APIRouter(prefix="/productos", tags=["products"])
 
+UPLOAD_FOLDER = "uploads"
+ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
+def _validate_image(upload: UploadFile):
+    if upload.content_type and upload.content_type not in ALLOWED_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Tipo de archivo no permitido: {upload.content_type}. Usa JPEG, PNG, WebP o GIF.",
+        )
 
 
 @router.get("/category/{category_id}", summary="Get products by category")
-
-def get_products_by_category(
-    db: Session = Depends(get_db),
-    category_id: int = None,
-    
-    ):
+def get_products_by_category(category_id: int, db: Session = Depends(get_db)):
     try:
-
-
         product = (
-
-
-
             db.query(
                 ProductosModel.id,
                 ProductosModel.nombre,
                 CategoriesModel.nombre.label("categoria_nombre"),
                 func.min(ImagenProducto.url).label("image"),
-                func.min(ProductoVariante.precio).label("price")
+                func.min(ProductoVariante.precio).label("price"),
             )
-
-
             .join(ProductoVariante, ProductoVariante.producto_id == ProductosModel.id)
             .join(ImagenProducto, ImagenProducto.producto_id == ProductosModel.id)
             .join(CategoriesModel, CategoriesModel.id == ProductosModel.categoria_id)
             .where(ProductosModel.categoria_id == category_id)
             .group_by(ProductosModel.id, ProductosModel.nombre, CategoriesModel.nombre)
             .all()
-            
         )
 
-        data = []
-
         seen = set()
-
+        data = []
         for p in product:
-
             if p.id in seen:
                 continue
-
             seen.add(p.id)
-
             data.append({
                 "id": p.id,
                 "name": p.nombre,
                 "category": p.categoria_nombre,
                 "image": p.image,
-                "price": p.price
+                "price": p.price,
             })
-        
-
-
-        
-        
-
-        
-        
-        
- 
-
-
-        
-
-
-        
-        
 
         return {"data": data}
-
     except Exception as e:
         return {"error": str(e)}
 
 
-
-
-
-
-
 @router.get("/{product_id}", summary="Get product by id")
-def get_product_by_id(
-    db: Session = Depends(get_db),
-    product_id: int = None,
-    authorization: Optional[str] = Header(None)
-):
+def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
     try:
-        # 1. Obtener los datos del producto (SIN el JOIN de imágenes)
         product = (
             db.query(
                 ProductosModel.id,
@@ -133,23 +95,19 @@ def get_product_by_id(
             .join(Subcategoria, Subcategoria.id == ProductosModel.subcategoria_id)
             .join(CategoriesModel, CategoriesModel.id == ProductosModel.categoria_id)
             .where(ProductosModel.id == product_id)
-            .first()  # Usamos first() porque esperamos un solo producto
+            .first()
         )
 
         if not product:
             return {"error": "Producto no encontrado"}
 
-        # 2. Obtener TODAS las imágenes del producto
         imagenes = (
             db.query(ImagenProducto.url)
             .where(ImagenProducto.producto_id == product_id)
             .all()
         )
-
-        # Convertir a lista de URLs
         imagenes_list = [img.url for img in imagenes]
 
-        # 3. Construir la respuesta
         data = {
             "id": product.id,
             "nombre": product.nombre,
@@ -165,56 +123,37 @@ def get_product_by_id(
             "peso": product.peso,
             "precio_compra": product.precio_compra,
             "precio_venta": product.precio,
-            "imagenes": imagenes_list,  # Array con todas las URLs
-            "imagen_principal": imagenes_list[0] if imagenes_list else None  # Primera imagen como principal
+            "imagenes": imagenes_list,
+            "imagen_principal": imagenes_list[0] if imagenes_list else None,
         }
 
         return {"data": data}
-
     except Exception as e:
         return {"error": str(e)}
 
-    
+
 @router.post("/delete/{product_id}", summary="Delete product")
 def delete_product(
+    product_id: int,
     db: Session = Depends(get_db),
-    product_id: int = None,
-    authorization: Optional[str] = Header(None)):
-
+    current_user: dict = Depends(require_role("admin")),
+):
     product = db.query(ProductosModel).filter(ProductosModel.id == product_id).first()
-    detalle = db.query(ProductoVariante).filter(ProductoVariante.producto_id == product_id).first()
-    imagen = db.query(ImagenProducto).filter(ImagenProducto.producto_id == product_id).first()
-
-
-    
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado")
-    if not detalle:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Detalle del producto no encontrado")
-    if not imagen:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Imagen del producto no encontrada")
 
     db.delete(product)
-    db.delete(detalle)
-    db.delete(imagen)
     db.commit()
 
- 
-
-
- 
-
-
-    return {"message": "Producto eliminado exitosamente"} 
-    
-UPLOAD_FOLDER = "uploads"
+    return {"message": "Producto eliminado exitosamente"}
 
 
 @router.post("/create", summary="Create product")
 async def create_joya(
-    db: Session = Depends(get_db),
     producto: str = Form(...),
-    imagenes: List[UploadFile] = File(...)
+    imagenes: List[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_role("admin", "editor")),
 ):
     try:
         datos = json.loads(producto)
@@ -222,87 +161,65 @@ async def create_joya(
         producto_data = datos["producto"]
         detalle_data = datos["detalle"]
 
-        # Crear producto (UNA SOLA VEZ)
         new_product = ProductosModel(**producto_data)
         db.add(new_product)
         db.flush()
 
-        # Crear detalle (UNA SOLA VEZ)
         new_detalle = ProductoVariante(
             producto_id=new_product.id,
             medida=detalle_data["medida"],
             unidad=detalle_data["unidad"],
             precio=detalle_data["precio"],
             precio_compra=detalle_data["precio_compra"],
-            activo=detalle_data["activo"]
+            activo=detalle_data["activo"],
         )
         db.add(new_detalle)
 
-        # Crear carpeta si no existe
         if not os.path.exists(UPLOAD_FOLDER):
             os.makedirs(UPLOAD_FOLDER)
 
-        # Procesar múltiples imágenes con OPTIMIZACIÓN
         for imagen in imagenes:
-            # 1. Generar nombre único con extensión .webp
+            _validate_image(imagen)
+
             filename = f"{uuid.uuid4()}.webp"
             file_location = f"{UPLOAD_FOLDER}/{filename}"
 
-            # 2. Abrir la imagen desde el stream de UploadFile
             img = Image.open(imagen.file)
 
-            # 3. Asegurar modo RGB (WebP no maneja transparencia igual que PNG en todos los casos)
             if img.mode in ("RGBA", "P"):
                 img = img.convert("RGB")
 
-            # 4. Redimensionar si es muy grande (máximo 1200px de ancho para optimizar carga web)
             max_width = 1200
             if img.width > max_width:
                 ratio = max_width / float(img.width)
                 new_height = int(float(img.height) * float(ratio))
                 img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
 
-            # 5. Guardar optimizada (calidad 80 es ideal para equilibrio peso/calidad)
             img.save(file_location, "WEBP", quality=80, optimize=True)
 
-            # Guardar imagen en DB (ASOCIADA AL MISMO PRODUCTO)
-            new_image = ImagenProducto(
-                producto_id=new_product.id,  # Mismo producto_id para todas
-                url=file_location
-            )
+            new_image = ImagenProducto(producto_id=new_product.id, url=file_location)
             db.add(new_image)
 
-        db.commit()  # UN SOLO COMMIT al final
+        db.commit()
 
         return {"message": "Producto creado exitosamente"}
-
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
-  
-@router.post("/update/{product_id}", summary="Update| product")
+
+
+@router.post("/update/{product_id}", summary="Update product")
 def update_product(
-    db: Session = Depends(get_db),):
-
-
-    
-
-    
-
- 
-    return {"message": "Producto actualizado exitosamente"} 
-    
-
-
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_role("admin", "editor")),
+):
+    return {"message": "Producto actualizado exitosamente"}
 
 
 @router.get("/", summary="List products with images")
-def list_products(
-    db: Session = Depends(get_db),
-    authorization: Optional[str] = Header(None)
-):
+def list_products(db: Session = Depends(get_db)):
     try:
-        # 1. Obtener productos (SIN el JOIN de imágenes)
         products = (
             db.query(
                 ProductosModel.id,
@@ -314,7 +231,6 @@ def list_products(
                 ProductoVariante.medida,
                 ProductoVariante.unidad,
                 ProductoVariante.precio,
-                 
                 CategoriesModel.nombre.label("categoria_nombre"),
                 CategoriesModel.id.label("categoria_id"),
                 Subcategoria.nombre.label("subcategoria_nombre"),
@@ -328,26 +244,31 @@ def list_products(
             .all()
         )
 
-        # 2. Preparar los datos, obteniendo las imágenes por separado
+        if not products:
+            return {"data": []}
+
+        product_ids = [p.id for p in products]
+        all_images = (
+            db.query(ImagenProducto.producto_id, ImagenProducto.url)
+            .where(ImagenProducto.producto_id.in_(product_ids))
+            .all()
+        )
+
+        images_map: dict[int, list[str]] = {}
+        for img in all_images:
+            if img.producto_id not in images_map:
+                images_map[img.producto_id] = []
+            images_map[img.producto_id].append(img.url)
+
         data = []
         for p in products:
-            # Obtener las URLs de las imágenes para este producto
-            imagenes = (
-                db.query(ImagenProducto.url)
-                .where(ImagenProducto.producto_id == p.id)
-                .all()
-            )
-            
-            # Convertir el resultado en una lista simple de strings
-            imagenes_list = [img.url for img in imagenes]
-            
-            # Construir el diccionario del producto
+            imagenes_list = images_map.get(p.id, [])
             data.append({
                 "id": p.id,
                 "nombre": p.nombre,
                 "descripcion": p.descripcion,
                 "categoria_id": p.categoria_id,
-                "categoria": p.categoria_nombre,                
+                "categoria": p.categoria_nombre,
                 "subcategoria_id": p.subcategoria_id,
                 "subcategoria": p.subcategoria_nombre,
                 "material_id": p.material_id,
@@ -355,15 +276,11 @@ def list_products(
                 "medida": p.medida,
                 "unidad": p.unidad,
                 "peso": p.peso,
-                
                 "precio_venta": p.precio,
-                # Devuelves TODAS las imágenes en un array
                 "imagenes": imagenes_list,
-                # (Opcional) La primera imagen como principal
-                "imagen_principal": imagenes_list[0] if imagenes_list else None
+                "imagen_principal": imagenes_list[0] if imagenes_list else None,
             })
 
         return {"data": data}
-
     except Exception as e:
         return {"error": str(e)}

@@ -1,8 +1,10 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, EmailStr
+
 
 class LoginRequest(BaseModel):
-    email: str
-    password: str
+    email: EmailStr
+    password: str = Field(..., min_length=1)
+
 
 class LoginResponse(BaseModel):
     id: int
@@ -12,11 +14,13 @@ class LoginResponse(BaseModel):
     activo: int
     token: str
 
+
 class UserCreate(BaseModel):
-    nombre: str
-    email: str
-    password: str
-    rol: str = "admin"
+    nombre: str = Field(..., min_length=1, max_length=100)
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=128)
+    rol: str = Field(default="editor", pattern="^(admin|editor)$")
+
 
 class UserOut(BaseModel):
     id: int
@@ -24,4 +28,3 @@ class UserOut(BaseModel):
     email: str
     rol: str
     activo: int
-
